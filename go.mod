@@ -1,4 +1,4 @@
-module github.com/bolsonarius
+module github.com/rhydori/bigmicroservices
 
 go 1.25.3
 
