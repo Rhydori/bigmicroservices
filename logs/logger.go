@@ -15,21 +15,13 @@ const (
 	red    = "\033[91m"
 )
 
-var now = time.Now().Format("[15:04:05.000]")
+func log(level, color, msg string, args ...any) {
+	now := time.Now().Format("[15:04:05.000]")
+	fmt.Println(color + now + " [" + level + "] " + fmt.Sprintf(msg, args...) + reset)
+}
 
-func Debug(msg string, args ...any) {
-	fmt.Println(cyan + now + " [DEBUG] " + fmt.Sprintf(msg, args...) + reset)
-}
-func Info(msg string, args ...any) {
-	fmt.Println(green + now + " [INFO] " + fmt.Sprintf(msg, args...) + reset)
-}
-func Warn(msg string, args ...any) {
-	fmt.Println(yellow + now + " [WARN] " + fmt.Sprintf(msg, args...) + reset)
-}
-func Error(msg string, args ...any) {
-	fmt.Println(purple + now + " [ERROR] " + fmt.Sprintf(msg, args...) + reset)
-}
-func Fatal(msg string, args ...any) {
-	fmt.Println(red + now + " [FATAL] " + fmt.Sprintf(msg, args...) + reset)
-	os.Exit(0)
-}
+func Debug(msg string, args ...any) { log("DEBUG", cyan, msg, args...) }
+func Info(msg string, args ...any)  { log("INFO", green, msg, args...) }
+func Warn(msg string, args ...any)  { log("WARN", yellow, msg, args...) }
+func Error(msg string, args ...any) { log("ERROR", purple, msg, args...) }
+func Fatal(msg string, args ...any) { log("FATAL", red, msg, args...); os.Exit(0) }
