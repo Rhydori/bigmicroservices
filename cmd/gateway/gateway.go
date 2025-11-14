@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rhydori/bigmicroservices/config"
 	"github.com/rhydori/bigmicroservices/logs"
 )
 
@@ -14,8 +15,6 @@ const (
 	gateAddr  = "127.0.0.1:1000"
 	loginAddr = "127.0.0.1:2000"
 	chatAddr  = "127.0.0.1:3000"
-
-	writeTimeout = 5 * time.Second
 )
 
 type Gateway struct {
@@ -47,7 +46,9 @@ type Message struct {
 }
 
 func main() {
-	gateway := newGateway(gateAddr, loginAddr, chatAddr)
+	cfg := config.GetConfig()
+
+	gateway := newGateway(cfg.GatewayAddr, cfg.LoginAddr, cfg.ChatAddr)
 	gateway.startGateway()
 }
 
@@ -72,10 +73,10 @@ func (g *Gateway) startGateway() {
 	defer ln.Close()
 
 	logs.Info("Waiting for LoginServer...")
-	//g.loginConn = g.loginConnection()
+	g.loginConn = g.loginConnection()
 
 	logs.Info("Waiting for ChatServer...")
-	//g.chatConn = g.chatConnection()
+	g.chatConn = g.chatConnection()
 
 	logs.Info("Gateway listening at %s", ln.Addr())
 	go g.acceptClientConn(ln)
