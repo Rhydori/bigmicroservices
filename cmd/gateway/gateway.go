@@ -30,8 +30,8 @@ type Gateway struct {
 	clients map[string]*Client
 	mu      sync.RWMutex
 
-	quitCh chan struct{}
-	//msgCh  chan Message
+	quitCh      chan struct{}
+	broadcastCh chan Message
 }
 
 type Client struct {
@@ -41,7 +41,6 @@ type Client struct {
 }
 
 type Message struct {
-	//from    *Client
 	payload []byte
 }
 
@@ -60,8 +59,8 @@ func newGateway(gateAddr, loginAddr, chatAddr string) *Gateway {
 		chatAddr:  chatAddr,
 		clients:   make(map[string]*Client),
 
-		quitCh: make(chan struct{}),
-		//msgCh:  make(chan Message, 32),
+		quitCh:      make(chan struct{}),
+		broadcastCh: make(chan Message, 32),
 	}
 }
 
@@ -123,7 +122,8 @@ func (g *Gateway) acceptClientConn(ln net.Listener) {
 
 		logs.Debug("Connected: %s", c.conn.RemoteAddr())
 		go g.handleRead(c)
-		go g.handleMessage(c)
+		//go g.handleMessage(c)
+		go g.broadcastMessage(c)
 	}
 }
 
@@ -147,15 +147,35 @@ func (g *Gateway) handleRead(c *Client) {
 			logs.Warn("Gateway handleRead Error: %s: %v", c.conn.RemoteAddr(), err)
 			return
 		}
-		c.sendCh <- Message{
-			//from:    c,
+		//		c.sendCh <- Message{
+		//			payload: buf[:n],
+		//		}
+		g.broadcastCh <- Message{
 			payload: buf[:n],
 		}
 	}
 }
 
-func (g *Gateway) handleMessage(c *Client) {
-	for msg := range c.sendCh {
-		logs.Debug("handleMessage: %s: %s", c.conn.RemoteAddr(), msg.payload)
+//func (g *Gateway) handleMessage(c *Client) {
+//	for msg := range c.sendCh {
+//		logs.Debug("handleMessage: %s: %s", c.conn.RemoteAddr(), msg.payload)
+//	}
+//}
+
+func (g *Gateway) broadcastMessage(c *Client) {
+	for msg := range g.broadcastCh {
+		broadcastPayload := append([]byte(c.conn.RemoteAddr().String()+": "), msg.payload...)
+		logs.Debug("%v", string(broadcastPayload))
+		g.mu.Lock()
+		for _, client := range g.clients {
+			go func(cl *Client) {
+				_, err := cl.conn.Write(broadcastPayload)
+				if err != nil {
+					logs.Warn("Broadcast Msg Error: %v", err)
+				}
+
+			}(client)
+		}
+		g.mu.Unlock()
 	}
 }
